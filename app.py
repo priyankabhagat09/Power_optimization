@@ -1,3 +1,16 @@
+import streamlit as st
+import pandas as pd
+import numpy as np
+import joblib
+
+# --- PAGE CONFIG ---
+st.set_page_config(
+    page_title="SIGNAL_CORE_V1",
+    page_icon="📡",
+    layout="wide"
+)
+
+# --- MODERN MINIMAL TECH UI ---
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap');
@@ -197,3 +210,111 @@ div[data-testid="stContainer"] {
 }
 </style>
 """, unsafe_allow_html=True)
+
+
+# --- MODEL UTILITY ---
+@st.cache_resource
+def load_system_model():
+    return joblib.load("power_model.pkl")
+
+
+model = load_system_model()
+
+
+# --- HEADER ---
+st.title("5G BEAMFORMING & POWER CONTROL")
+st.markdown(
+    '<div class="dashboard-subtitle">Real-Time Signal Analysis & Inference Engine</div>',
+    unsafe_allow_html=True
+)
+
+
+# --- SIDEBAR CONTROLS ---
+with st.sidebar:
+    st.markdown("### SYSTEM PARAMETERS")
+    st.markdown("---")
+
+    signal = st.slider("SIGNAL INPUT (dBm)", -120, -30, -75)
+    snr = st.slider("SNR THRESHOLD (dB)", 0, 30, 15)
+    traffic = st.slider("TRAFFIC LOAD (%)", 0, 100, 50)
+    distance = st.slider("NODE DISTANCE (m)", 50, 1000, 300)
+    data_rate = st.slider("THROUGHPUT (Mbps)", 1, 100, 20)
+
+    st.markdown("---")
+    st.markdown(
+        '<div class="status-badge">● Core Active</div>',
+        unsafe_allow_html=True
+    )
+    st.caption("MODE: REAL-TIME INFERENCE")
+
+
+# --- INFERENCE ENGINE ---
+features = pd.DataFrame(
+    [[signal, snr, traffic, distance, data_rate]],
+    columns=["signal", "snr", "traffic", "distance", "data_rate"]
+)
+
+prediction = model.predict(features)[0]
+
+labels = {
+    0: "LOW_POWER_OUTPUT",
+    1: "MODERATE_POWER_OUTPUT",
+    2: "CRITICAL_HIGH_POWER"
+}
+
+system_status = labels.get(prediction, "UNKNOWN_STATE")
+
+
+# --- PRIMARY METRICS ---
+m1, m2, m3 = st.columns(3)
+
+with m1:
+    st.metric("PREDICTED STATE", system_status)
+
+with m2:
+    st.metric("SNR VALUE", f"{snr} dB")
+
+with m3:
+    st.metric("NETWORK CONGESTION", f"{traffic} %")
+
+
+st.markdown("---")
+
+
+# --- ANALYSIS SECTION ---
+st.markdown(
+    '<div class="section-label">Analysis</div>',
+    unsafe_allow_html=True
+)
+
+tab_data, tab_plot = st.tabs(["[ DATA LOG ]", "[ SIGNAL WAVEFORM ]"])
+
+
+# --- DATA TAB ---
+with tab_data:
+    try:
+        df = pd.read_csv("network_data.csv")
+        st.dataframe(
+            df.tail(12),
+            use_container_width=True,
+            hide_index=True
+        )
+    except Exception:
+        st.info(
+            "SYSTEM_MESSAGE: No historical data found. "
+            "Initiate simulate.py to populate the log."
+        )
+
+
+# --- SIGNAL TAB ---
+with tab_plot:
+    if 'df' in locals() and not df.empty:
+        st.line_chart(
+            df["signal"].tail(40),
+            use_container_width=True
+        )
+    else:
+        st.text("SYSTEM_MESSAGE: Waiting for signal detection...")
+
+
+st.markdown("---")

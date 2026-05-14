@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
-import time  # <--- Added missing import
+import time
 
 # --- PAGE CONFIG ---
 st.set_page_config(
@@ -82,12 +82,21 @@ button[data-baseweb="tab"] p {
 </style>
 """, unsafe_allow_html=True)
 
+# --- INITIALIZE SESSION STATE ---
+# This ensures data persists between the 1-second refreshes
+if 'live_history' not in st.session_state:
+    st.session_state.live_history = []
+
 # --- MODEL UTILITY ---
 @st.cache_resource
 def load_system_model():
     return joblib.load("power_model.pkl")
 
-model = load_system_model()
+try:
+    model = load_system_model()
+except:
+    st.error("CRITICAL ERROR: 'power_model.pkl' not found in repository.")
+    st.stop()
 
 # --- HEADER ---
 st.title("POWER OPTIMIZATION")
@@ -134,42 +143,47 @@ st.markdown('<div class="section-label">Analysis_Output</div>', unsafe_allow_htm
 
 tab_data, tab_plot = st.tabs(["[ DATA_LOG ]", "[ SIGNAL_WAVEFORM ]"])
 
-# Session State for Live Data (so it persists across reruns)
-if 'live_data' not in st.session_state:
-    st.session_state.live_data = pd.DataFrame(columns=["signal"])
-
-try:
-    df_static = pd.read_csv("network_data.csv")
-except Exception:
-    df_static = pd.DataFrame()
-
 with tab_data:
-    if not df_static.empty:
+    try:
+        # Tries to load the CSV if it exists on GitHub
+        df_static = pd.read_csv("network_data.csv")
         st.dataframe(df_static.tail(12), use_container_width=True, hide_index=True)
-    else:
-        st.info("SYSTEM_MESSAGE: No historical data found.")
+    except:
+        # If no CSV exists, it shows the live data collected so far
+        if st.session_state.live_history:
+            st.write("LIVE_LOG (Current Session):")
+            st.write(pd.DataFrame(st.session_state.live_history, columns=["Signal_dBm"]).tail(10))
+        else:
+            st.info("SYSTEM_MESSAGE: No historical data. Activate telemetry to start logging.")
 
 with tab_plot:
-    # Use a dynamic container that updates
-    chart_spot = st.empty()
-    if not st.session_state.live_data.empty:
-        chart_spot.line_chart(st.session_state.live_data, color="#15468b")
+    plot_container = st.empty()
+    if st.session_state.live_history:
+        # Plotting the history list directly ensures a horizontal waveform
+        plot_container.line_chart(st.session_state.live_history, color="#15468b")
     else:
-        st.text("SYSTEM_MESSAGE: Waiting for signal telemetry...")
+        st.text("SYSTEM_MESSAGE: Waiting for signal telemetry stream...")
 
-# --- AUTO-GENERATION LOGIC ---
+# --- LIVE STREAM ENGINE ---
 st.markdown("---")
-st.markdown('<div class="section-label">Live Stream Control</div>', unsafe_allow_html=True)
-
 activate = st.toggle("ACTIVATE LIVE TELEMETRY")
 
 if activate:
-    # 1. Generate new data point
-    new_row = pd.DataFrame({"signal": [np.random.randint(-110, -40)]})
+    # 1. Generate new point
+    new_point = np.random.randint(-110, -40)
     
-    # 2. Update session state
-    st.session_state.live_data = pd.concat([st.session_state.live_data, new_row]).tail(30)
+    # 2. Add to session history
+    st.session_state.live_history.append(new_point)
     
-    # 3. Short wait then force a rerun to update UI
-    time.sleep(1)
+    # 3. Limit history size to 40 points (scrolling effect)
+    if len(st.session_state.live_history) > 40:
+        st.session_state.live_history.pop(0)
+    
+    # 4. Small delay to make it readable
+    time.sleep(0.8)
+    
+    # 5. Trigger the rerun
     st.rerun()
+
+st.markdown("---")
+st.caption("___")

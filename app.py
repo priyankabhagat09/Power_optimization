@@ -152,3 +152,30 @@ with tab_plot:
         st.line_chart(df["signal"].tail(40), use_container_width=True)
     else:
         st.text("SYSTEM_MESSAGE: Waiting for signal detection stream...")
+
+# --- AUTO-GENERATION LOGIC (For Web Deployment) ---
+st.markdown("---")
+st.markdown('<div class="section-label">Live Stream Control</div>', unsafe_allow_html=True)
+
+if st.toggle("ACTIVATE LIVE TELEMETRY"):
+    # Create a placeholder for the live chart
+    chart_placeholder = st.empty()
+    
+    # Initialize session state to store data points
+    if 'live_data' not in st.session_state:
+        st.session_state.live_data = []
+
+    while True:
+        # Generate a random signal value
+        new_val = np.random.randint(-110, -40)
+        st.session_state.live_data.append(new_val)
+        
+        # Keep only the last 30 points
+        if len(st.session_state.live_data) > 30:
+            st.session_state.live_data.pop(0)
+            
+        # Update the chart in the placeholder
+        chart_placeholder.line_chart(st.session_state.live_data, color="#15468b")
+        
+        time.sleep(1) # Refresh every second
+        st.rerun()

@@ -65,7 +65,7 @@ h1 {
     font-size: 2rem !important;
     font-weight: 600 !important;
     letter-spacing: 1px;
-    color: var(--accent);
+    color: black;
     margin-bottom: 0.2rem;
 }
 
@@ -222,7 +222,7 @@ model = load_system_model()
 
 
 # --- HEADER ---
-st.title("5G BEAMFORMING & POWER CONTROL")
+st.title(" POWER OPTIMIZATION")
 st.markdown(
     '<div class="dashboard-subtitle">Real-Time Signal Analysis & Inference Engine</div>',
     unsafe_allow_html=True

@@ -10,21 +10,22 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- MODERN MINIMAL TECH UI ---
+# --- MODERN BLUE & WHITE UI ---
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
 
 :root {
     --bg: #dbe6f5;                 /* Light blue background */
     --panel: #ffffff;              /* White cards */
-    --panel-2: #f5f8fd;            /* Secondary card background */
+    --panel-2: #f5f8fd;            /* Secondary panels */
     --border: rgba(20, 60, 120, 0.08);
 
     --text: #143a72;               /* Deep blue text */
     --muted: #7d8fa8;              /* Gray-blue secondary text */
 
     --accent: #15468b;             /* Royal blue */
+    --accent-dark: #0f3870;        /* Darker title blue */
     --accent-soft: rgba(21, 70, 139, 0.08);
 
     --success: #15468b;
@@ -39,7 +40,7 @@ html, body, [class*="css"] {
 
 /* App background */
 .stApp {
-    background: linear-gradient(135deg, #dbe6f5 0%, #edf3fb 100%);
+    background: linear-gradient(135deg, #dbe6f5 0%, #edf3fb 50%, #f7fbff 100%);
 }
 
 /* Main container */
@@ -60,19 +61,28 @@ section[data-testid="stSidebar"] .block-container {
     padding-top: 1.5rem;
 }
 
-/* Title */
+/* Sidebar heading */
+section[data-testid="stSidebar"] h3 {
+    color: var(--accent);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
+/* Main Title */
 h1 {
-    font-size: 2rem !important;
-    font-weight: 600 !important;
-    letter-spacing: 1px;
-    color: black;
+    font-size: 3rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 1.5px;
+    color: var(--accent-dark) !important;
     margin-bottom: 0.2rem;
+    text-shadow: 0 2px 8px rgba(21, 70, 139, 0.08);
 }
 
 /* Subtitle */
 .dashboard-subtitle {
     color: var(--muted);
-    font-size: 0.9rem;
+    font-size: 1rem;
+    font-weight: 500;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     margin-bottom: 1.5rem;
@@ -85,7 +95,7 @@ hr {
     margin: 1.2rem 0;
 }
 
-/* Metric Cards (Predicted State / SNR Value / Network Congestion) */
+/* Metric Cards */
 [data-testid="stMetric"] {
     background: #ffffff !important;
     border: 1px solid rgba(21, 70, 139, 0.08);
@@ -104,14 +114,14 @@ hr {
 [data-testid="stMetricLabel"] {
     color: var(--muted);
     font-size: 0.72rem;
-    font-weight: 500;
+    font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
 }
 
 [data-testid="stMetricValue"] {
-    color: var(--accent);
-    font-size: 1.35rem;
+    color: var(--accent-dark);
+    font-size: 1.4rem;
     font-weight: 700;
 }
 
@@ -124,7 +134,7 @@ hr {
     box-shadow: 0 4px 12px rgba(21, 70, 139, 0.05);
 }
 
-/* Input fields */
+/* Inputs */
 .stTextInput input,
 .stNumberInput input,
 .stSelectbox div[data-baseweb="select"] > div {
@@ -151,8 +161,8 @@ button[data-baseweb="tab"] {
 }
 
 button[data-baseweb="tab"][aria-selected="true"] {
-    color: var(--accent);
-    font-weight: 600;
+    color: var(--accent-dark);
+    font-weight: 700;
 }
 
 /* Dataframe */
@@ -164,7 +174,7 @@ button[data-baseweb="tab"][aria-selected="true"] {
     box-shadow: 0 6px 18px rgba(21, 70, 139, 0.05);
 }
 
-/* Info box */
+/* Info Box */
 [data-testid="stInfo"] {
     background: #ffffff;
     border: 1px solid rgba(21, 70, 139, 0.08);
@@ -172,30 +182,31 @@ button[data-baseweb="tab"][aria-selected="true"] {
     color: var(--text);
 }
 
-/* Status badge */
+/* Status Badge */
 .status-badge {
     display: inline-block;
     padding: 0.4rem 0.8rem;
     border-radius: 999px;
     background: rgba(21, 70, 139, 0.08);
     border: 1px solid rgba(21, 70, 139, 0.10);
-    color: var(--accent);
+    color: var(--accent-dark);
     font-size: 0.72rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     font-weight: 600;
 }
 
-/* Section label */
+/* Section Label */
 .section-label {
-    color: var(--muted);
-    font-size: 0.78rem;
+    color: var(--accent);
+    font-size: 0.82rem;
+    font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     margin-bottom: 0.75rem;
 }
 
-/* Charts and containers */
+/* Charts */
 [data-testid="stVerticalBlock"] > div:has(canvas),
 [data-testid="stPlotlyChart"],
 [data-testid="stLineChart"] {
@@ -204,7 +215,7 @@ button[data-baseweb="tab"][aria-selected="true"] {
     padding: 0.5rem;
 }
 
-/* Remove any dark backgrounds from generic containers */
+/* Generic Containers */
 div[data-testid="stContainer"] {
     background: transparent;
 }
@@ -222,7 +233,7 @@ model = load_system_model()
 
 
 # --- HEADER ---
-st.title(" POWER OPTIMIZATION")
+st.title("POWER OPTIMIZATION")
 st.markdown(
     '<div class="dashboard-subtitle">Real-Time Signal Analysis & Inference Engine</div>',
     unsafe_allow_html=True

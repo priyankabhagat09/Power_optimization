@@ -232,7 +232,6 @@ def load_system_model():
 
 model = load_system_model()
 
-
 # --- HEADER ---
 st.title("POWER OPTIMIZATION")
 st.markdown(
@@ -240,33 +239,19 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# CRITICAL: Define the placeholder and labels BEFORE the loop starts
+dynamic_container = st.empty()
 
-# --- SIDEBAR CONTROLS ---
-with st.sidebar:
-    st.markdown("### SYSTEM PARAMETERS")
-    st.markdown("---")
-
-    signal = st.slider("SIGNAL INPUT (dBm)", -120, -30, -75)
-    snr = st.slider("SNR THRESHOLD (dB)", 0, 30, 15)
-    traffic = st.slider("TRAFFIC LOAD (%)", 0, 100, 50)
-    distance = st.slider("NODE DISTANCE (m)", 50, 1000, 300)
-    data_rate = st.slider("THROUGHPUT (Mbps)", 1, 100, 20)
-
-    st.markdown("---")
-    st.markdown(
-        '<div class="status-badge">● Core Active</div>',
-        unsafe_allow_html=True
-    )
-    st.caption("MODE: REAL-TIME INFERENCE")
-
-
-# --- INFERENCE ENGINE --- # Ensure this is imported at the top of your app.py
+labels = {
+    0: "LOW_POWER_OUTPUT",
+    1: "MODERATE_POWER_OUTPUT",
+    2: "CRITICAL_HIGH_POWER"
+}
 
 # --- LIVE UPDATE LOOP ---
 while True:
     # 1. LOAD UPDATED DATA
     try:
-        # We read the CSV inside the loop so it catches new rows from your simulation
         df = pd.read_csv("network_data.csv")
         latest_data = df.iloc[-1]
         
@@ -277,6 +262,7 @@ while True:
     except Exception:
         # Fallback to slider values if CSV isn't ready or found
         live_signal, live_snr, live_traffic = signal, snr, traffic
+        df = pd.DataFrame() # Create empty DF to avoid errors in tabs
 
     # 2. RUN INFERENCE
     features = pd.DataFrame(
@@ -287,7 +273,6 @@ while True:
     system_status = labels.get(prediction, "UNKNOWN_STATE")
 
     # 3. REFRESH THE UI
-    # This 'with' block tells Streamlit to put all this content INSIDE the dynamic_container
     with dynamic_container.container():
         
         # --- PRIMARY METRICS ---
@@ -306,13 +291,13 @@ while True:
         tab_data, tab_plot = st.tabs(["[ DATA LOG ]", "[ SIGNAL WAVEFORM ]"])
 
         with tab_data:
-            if 'df' in locals() and not df.empty:
+            if not df.empty:
                 st.dataframe(df.tail(12), use_container_width=True, hide_index=True)
             else:
                 st.info("SYSTEM_MESSAGE: No historical data found.")
 
         with tab_plot:
-            if 'df' in locals() and not df.empty:
+            if not df.empty and "signal" in df.columns:
                 st.line_chart(df["signal"].tail(40), use_container_width=True)
             else:
                 st.text("SYSTEM_MESSAGE: Waiting for signal...")

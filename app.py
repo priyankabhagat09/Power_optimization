@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
+import time  # <--- Added missing import
 
 # --- PAGE CONFIG ---
 st.set_page_config(
@@ -74,7 +75,6 @@ h1 {
     margin-bottom: 0.75rem;
 }
 
-/* Tab text styling */
 button[data-baseweb="tab"] p {
     font-size: 0.8rem;
     font-weight: 600;
@@ -132,50 +132,44 @@ st.markdown("---")
 # --- ANALYSIS SECTION ---
 st.markdown('<div class="section-label">Analysis_Output</div>', unsafe_allow_html=True)
 
-# Define the two distinct tabs
 tab_data, tab_plot = st.tabs(["[ DATA_LOG ]", "[ SIGNAL_WAVEFORM ]"])
 
-# Try to load the CSV data once for use in both tabs
+# Session State for Live Data (so it persists across reruns)
+if 'live_data' not in st.session_state:
+    st.session_state.live_data = pd.DataFrame(columns=["signal"])
+
 try:
-    df = pd.read_csv("network_data.csv")
+    df_static = pd.read_csv("network_data.csv")
 except Exception:
-    df = pd.DataFrame() # Create empty if not found
+    df_static = pd.DataFrame()
 
 with tab_data:
-    if not df.empty:
-        st.dataframe(df.tail(12), use_container_width=True, hide_index=True)
+    if not df_static.empty:
+        st.dataframe(df_static.tail(12), use_container_width=True, hide_index=True)
     else:
-        st.info("SYSTEM_MESSAGE: No historical data found. Initiate simulate.py to populate the log.")
+        st.info("SYSTEM_MESSAGE: No historical data found.")
 
 with tab_plot:
-    if not df.empty and "signal" in df.columns:
-        st.line_chart(df["signal"].tail(40), use_container_width=True)
+    # Use a dynamic container that updates
+    chart_spot = st.empty()
+    if not st.session_state.live_data.empty:
+        chart_spot.line_chart(st.session_state.live_data, color="#15468b")
     else:
-        st.text("SYSTEM_MESSAGE: Waiting for signal detection stream...")
+        st.text("SYSTEM_MESSAGE: Waiting for signal telemetry...")
 
-# --- AUTO-GENERATION LOGIC (For Web Deployment) ---
+# --- AUTO-GENERATION LOGIC ---
 st.markdown("---")
 st.markdown('<div class="section-label">Live Stream Control</div>', unsafe_allow_html=True)
 
-if st.toggle("ACTIVATE LIVE TELEMETRY"):
-    # Create a placeholder for the live chart
-    chart_placeholder = st.empty()
-    
-    # Initialize session state to store data points
-    if 'live_data' not in st.session_state:
-        st.session_state.live_data = []
+activate = st.toggle("ACTIVATE LIVE TELEMETRY")
 
-    while True:
-        # Generate a random signal value
-        new_val = np.random.randint(-110, -40)
-        st.session_state.live_data.append(new_val)
-        
-        # Keep only the last 30 points
-        if len(st.session_state.live_data) > 30:
-            st.session_state.live_data.pop(0)
-            
-        # Update the chart in the placeholder
-        chart_placeholder.line_chart(st.session_state.live_data, color="#15468b")
-        
-        time.sleep(1) # Refresh every second
-        st.rerun()
+if activate:
+    # 1. Generate new data point
+    new_row = pd.DataFrame({"signal": [np.random.randint(-110, -40)]})
+    
+    # 2. Update session state
+    st.session_state.live_data = pd.concat([st.session_state.live_data, new_row]).tail(30)
+    
+    # 3. Short wait then force a rerun to update UI
+    time.sleep(1)
+    st.rerun()

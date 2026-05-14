@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
+import time
 
 # --- PAGE CONFIG ---
 st.set_page_config(
@@ -259,73 +260,62 @@ with st.sidebar:
     st.caption("MODE: REAL-TIME INFERENCE")
 
 
-# --- INFERENCE ENGINE ---
-features = pd.DataFrame(
-    [[signal, snr, traffic, distance, data_rate]],
-    columns=["signal", "snr", "traffic", "distance", "data_rate"]
-)
+# --- INFERENCE ENGINE --- # Ensure this is imported at the top of your app.py
 
-prediction = model.predict(features)[0]
-
-labels = {
-    0: "LOW_POWER_OUTPUT",
-    1: "MODERATE_POWER_OUTPUT",
-    2: "CRITICAL_HIGH_POWER"
-}
-
-system_status = labels.get(prediction, "UNKNOWN_STATE")
-
-
-# --- PRIMARY METRICS ---
-m1, m2, m3 = st.columns(3)
-
-with m1:
-    st.metric("PREDICTED STATE", system_status)
-
-with m2:
-    st.metric("SNR VALUE", f"{snr} dB")
-
-with m3:
-    st.metric("NETWORK CONGESTION", f"{traffic} %")
-
-
-st.markdown("---")
-
-
-# --- ANALYSIS SECTION ---
-st.markdown(
-    '<div class="section-label">Analysis</div>',
-    unsafe_allow_html=True
-)
-
-tab_data, tab_plot = st.tabs(["[ DATA LOG ]", "[ SIGNAL WAVEFORM ]"])
-
-
-# --- DATA TAB ---
-with tab_data:
+# --- LIVE UPDATE LOOP ---
+while True:
+    # 1. LOAD UPDATED DATA
     try:
+        # We read the CSV inside the loop so it catches new rows from your simulation
         df = pd.read_csv("network_data.csv")
-        st.dataframe(
-            df.tail(12),
-            use_container_width=True,
-            hide_index=True
-        )
+        latest_data = df.iloc[-1]
+        
+        # Pull live values from the CSV
+        live_signal = latest_data.get('signal', signal)
+        live_snr = latest_data.get('snr', snr)
+        live_traffic = latest_data.get('traffic', traffic)
     except Exception:
-        st.info(
-            "SYSTEM_MESSAGE: No historical data found. "
-            "Initiate simulate.py to populate the log."
-        )
+        # Fallback to slider values if CSV isn't ready or found
+        live_signal, live_snr, live_traffic = signal, snr, traffic
 
+    # 2. RUN INFERENCE
+    features = pd.DataFrame(
+        [[live_signal, live_snr, live_traffic, distance, data_rate]],
+        columns=["signal", "snr", "traffic", "distance", "data_rate"]
+    )
+    prediction = model.predict(features)[0]
+    system_status = labels.get(prediction, "UNKNOWN_STATE")
 
-# --- SIGNAL TAB ---
-with tab_plot:
-    if 'df' in locals() and not df.empty:
-        st.line_chart(
-            df["signal"].tail(40),
-            use_container_width=True
-        )
-    else:
-        st.text("SYSTEM_MESSAGE: Waiting for signal detection...")
+    # 3. REFRESH THE UI
+    # This 'with' block tells Streamlit to put all this content INSIDE the dynamic_container
+    with dynamic_container.container():
+        
+        # --- PRIMARY METRICS ---
+        m1, m2, m3 = st.columns(3)
+        with m1:
+            st.metric("PREDICTED STATE", system_status)
+        with m2:
+            st.metric("SNR VALUE", f"{live_snr} dB")
+        with m3:
+            st.metric("NETWORK CONGESTION", f"{live_traffic} %")
 
+        st.markdown("---")
 
-st.markdown("---")
+        # --- ANALYSIS SECTION ---
+        st.markdown('<div class="section-label">Analysis</div>', unsafe_allow_html=True)
+        tab_data, tab_plot = st.tabs(["[ DATA LOG ]", "[ SIGNAL WAVEFORM ]"])
+
+        with tab_data:
+            if 'df' in locals() and not df.empty:
+                st.dataframe(df.tail(12), use_container_width=True, hide_index=True)
+            else:
+                st.info("SYSTEM_MESSAGE: No historical data found.")
+
+        with tab_plot:
+            if 'df' in locals() and not df.empty:
+                st.line_chart(df["signal"].tail(40), use_container_width=True)
+            else:
+                st.text("SYSTEM_MESSAGE: Waiting for signal...")
+
+    # 4. SLEEP FOR 3 SECONDS
+    time.sleep(3)
